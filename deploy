@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Tikkit deploy: builds and runs the whole stack with Docker on this machine.
 #
-#   ./deploy            build + start (safe to re-run; it updates in place)
+#   ./deploy            git pull, then build + start (safe to re-run; updates in place)
+#   ./deploy --no-pull  deploy the code as it is, without git pull
 #   ./deploy --seed     also load supabase/seed.sql demo data (first run only)
 #   ./deploy status     show containers
 #   ./deploy logs [svc] follow logs (gateway, auth, rest, storage, functions, db)
@@ -76,7 +77,7 @@ banner() {
 }
 
 STEP=0
-TOTAL=10
+TOTAL=11
 bar() { # filled width out of 20
   local n=$((STEP * 20 / TOTAL)) i s=
   for ((i = 0; i < 20; i++)); do [ $i -lt $n ] && s="$s█" || s="$s░"; done
@@ -312,11 +313,12 @@ case "${1:-up}" in
   status) [ -f "$ENV_FILE" ] || die "not deployed yet"; exec "${DC[@]}" ps ;;
   logs) [ -f "$ENV_FILE" ] || die "not deployed yet"; shift; exec "${DC[@]}" logs -f --tail 100 "$@" ;;
   down) [ -f "$ENV_FILE" ] || die "not deployed yet"; exec "${DC[@]}" down ;;
-  -h | --help | help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-  up | --seed) ;;
+  -h | --help | help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  up | --seed | --no-pull) ;;
   *) die "unknown command: $1 (try ./deploy help)" ;;
 esac
-for a in "$@"; do [ "$a" = --seed ] && SEED=1; done
+NO_PULL=${DEPLOY_PULLED:-0}
+for a in "$@"; do [ "$a" = --seed ] && SEED=1; [ "$a" = --no-pull ] && NO_PULL=1; done
 REQ_PORT=${APP_PORT:-} # APP_PORT=... ./deploy picks where the scan starts
 export SEED=${SEED:-0}
 
@@ -324,6 +326,22 @@ export SEED=${SEED:-0}
 banner
 
 run "Checking Docker" check_tools
+git_pull() {
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "not a git checkout; use ./deploy --no-pull"; return 1; }
+  git pull --ff-only || { echo "git pull failed (local changes or diverged branch). Fix it, or run ./deploy --no-pull"; return 1; }
+}
+if [ "$NO_PULL" = 1 ]; then
+  STEP=$((STEP + 1))
+  printf '  %s✔%s %-34s %s%s%s %s%s%s\n' "$GREEN" "$R" "Using current code" "$CYAN" "$(bar)" "$R" "$GREY" "$(git rev-parse --short HEAD 2>/dev/null)" "$R"
+else
+  before=$(cksum <"$0")
+  run "Pulling latest code" git_pull
+  # A newer ./deploy came down: hand over to it (it skips the pull).
+  if [ "$(cksum <"$0")" != "$before" ]; then
+    note "deploy script updated, restarting it"
+    DEPLOY_PULLED=1 exec "$0" "$@"
+  fi
+fi
 if [ -f "$ENV_FILE" ]; then
   STEP=$((STEP + 1))
   printf '  %s✔%s %-34s %s%s%s %s%s%s\n' "$GREEN" "$R" "Loading config" "$CYAN" "$(bar)" "$R" "$GREY" "docker/.env" "$R"
