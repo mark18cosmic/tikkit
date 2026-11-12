@@ -258,8 +258,34 @@ build_web() {
   # Drop the previous build's image so rebuilds don't pile up on disk.
   docker image prune -f --filter label=tikkit=gateway
 }
+# A database whose first-time setup didn't finish (e.g. from an older deploy)
+# can't be fixed in place: Postgres only runs its setup scripts on an empty
+# volume. If it has no Tikkit data yet, recreate it; otherwise stop and ask.
+db_setup_ok() {
+  # A finished setup gives Auth ownership of auth.uid() and sets the service passwords.
+  [ "$("${DC[@]}" exec -T db psql -U supabase_admin -d postgres -Atc "select
+      (select r.rolname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+         join pg_roles r on r.oid = p.proowner where n.nspname = 'auth' and p.proname = 'uid')
+      || '/' ||
+      (select bool_and(rolpassword is not null) from pg_authid
+         where rolname in ('supabase_auth_admin', 'supabase_storage_admin', 'authenticator'))" 2>/dev/null)" = "supabase_auth_admin/true" ]
+}
+db_has_app_data() {
+  [ "$(psql_db -c "select to_regclass('supabase_migrations.schema_migrations') is not null")" = t ] &&
+    [ "$(psql_db -c "select count(*) > 0 from supabase_migrations.schema_migrations")" = t ]
+}
 start_db() {
-  "${DC[@]}" up -d --wait db
+  "${DC[@]}" up -d --wait db || return 1
+  db_setup_ok && return 0
+  if db_has_app_data; then
+    echo "The database's setup is incomplete but it holds Tikkit data, so it wasn't touched."
+    echo "If losing that data is fine, run: ./deploy reset && ./deploy"
+    return 1
+  fi
+  echo "Database setup was incomplete and it has no app data: recreating it."
+  "${DC[@]}" down -v --remove-orphans || return 1
+  "${DC[@]}" up -d --wait db || return 1
+  db_setup_ok || { echo "database setup still failing; see: ./deploy logs db"; return 1; }
 }
 start_core() {
   "${DC[@]}" up -d --wait auth rest storage
