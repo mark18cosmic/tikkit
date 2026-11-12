@@ -16,6 +16,10 @@ import { useColors } from '@/theme/useTheme';
 
 const RESEND_AFTER_S = 60;
 
+// Test servers (./deploy with TEST_MODE) also allow email + password, so
+// testers can sign in to the shared test accounts without email delivery.
+const TESTER_LOGIN = process.env.EXPO_PUBLIC_TESTER_LOGIN === 'true';
+
 // Only same-app paths, so a crafted link can't bounce people to another site.
 const safeNext = (next: unknown): Href | null =>
   typeof next === 'string' && next.startsWith('/') && !next.startsWith('//') ? (next as Href) : null;
@@ -34,7 +38,8 @@ export default function SignIn() {
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [busy, setBusy] = useState<'google' | 'send' | 'verify' | 'dev' | null>(null);
+  const [busy, setBusy] = useState<'google' | 'send' | 'verify' | 'dev' | 'password' | null>(null);
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
@@ -97,6 +102,21 @@ export default function SignIn() {
     setBusy('dev');
     try {
       await signInWithPassword(DEV_ACCOUNT.email, DEV_ACCOUNT.password);
+      finishSignIn(next);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const passwordSignIn = async () => {
+    setError(null);
+    if (!isEmail(email)) return fail(new Error('Enter a valid email address.'));
+    if (!password) return fail(new Error('Enter the password.'));
+    setBusy('password');
+    try {
+      await signInWithPassword(email, password);
       finishSignIn(next);
     } catch (e) {
       fail(e);
@@ -211,6 +231,29 @@ export default function SignIn() {
         />
         <Button label="Email me a code" loading={busy === 'send'} onPress={send} />
         {errorText}
+        {TESTER_LOGIN && !__DEV__ && (
+          <View style={[styles.dev, { borderColor: colors.border }]}>
+            <AppText variant="footnote" muted>
+              Test server: sign in with a tester email and password instead.
+            </AppText>
+            <Field
+              label="Tester password"
+              value={password}
+              onChangeText={(t) => {
+                setPassword(t);
+                setError(null);
+              }}
+              secureTextEntry
+              autoComplete="current-password"
+              textContentType="password"
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="go"
+              onSubmitEditing={passwordSignIn}
+            />
+            <Button label="Sign in with password" variant="secondary" loading={busy === 'password'} onPress={passwordSignIn} />
+          </View>
+        )}
         {__DEV__ && (
           <View style={[styles.dev, { borderColor: colors.border }]}>
             <AppText variant="footnote" muted>

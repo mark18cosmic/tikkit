@@ -3,7 +3,7 @@
 #
 #   ./deploy            git pull, then build + start (safe to re-run; updates in place)
 #   ./deploy --no-pull  deploy the code as it is, without git pull
-#   ./deploy --seed     also load supabase/seed.sql demo data (first run only)
+#   ./deploy --seed     load the sample data even when TEST_MODE=false
 #   ./deploy status     show containers
 #   ./deploy logs [svc] follow logs (gateway, auth, rest, storage, functions, db)
 #   ./deploy down       stop everything (data is kept in Docker volumes)
@@ -139,6 +139,18 @@ warn() { printf '  %s!%s %s\n' "$YEL" "$R" "$*"; }
 die() { printf '\n  %s✘ %s%s\n\n' "$RED" "$*" "$R"; exit 1; }
 
 # ── helpers ──────────────────────────────────────────────────────────────────
+rand_pw() { openssl rand -base64 30 | tr -dc 'A-Za-z0-9' | head -c 18; }
+
+# Settings added after a server's docker/.env was first written.
+ensure_env_defaults() {
+  if ! grep -q '^TEST_MODE=' "$ENV_FILE"; then
+    printf '\n# Test mode (see ./deploy). Set to false for real launch.\nTEST_MODE=true\n' >>"$ENV_FILE"
+  fi
+  if ! grep -q '^TEST_ADMIN_PASSWORD=' "$ENV_FILE"; then
+    printf 'TEST_ADMIN_PASSWORD=%s\n' "$(rand_pw)" >>"$ENV_FILE"
+  fi
+}
+
 b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
 jwt() { # role secret
   local now h p s
@@ -242,6 +254,13 @@ SMTP_PASS=
 SMTP_ADMIN_EMAIL=
 SMTP_SENDER_NAME=Tikkit
 
+# Test mode: loads the sample events/venues (supabase/seed.sql) once, lets
+# testers sign in with a password, and sets this password on the test accounts
+# (admin@eventspace.mv is the test admin; aminath@ and newbie@ are regular users).
+# Set TEST_MODE=false for real launch: the test accounts get locked.
+TEST_MODE=true
+TEST_ADMIN_PASSWORD=$(rand_pw)
+
 # Optional
 GOOGLE_ENABLED=false
 GOOGLE_CLIENT_ID=
@@ -310,13 +329,19 @@ migrate() {
       psql_db -1 -f - || { echo "migration $base failed"; return 1; }
     applied=$((applied + 1))
   done
-  if [ "${SEED:-0}" = 1 ]; then
+  if [ "${SEED:-0}" = 1 ] || [ "${TEST_MODE:-true}" = true ]; then
     if [ "$(psql_db -c "select 1 from supabase_migrations.schema_migrations where version = 'seed'")" != 1 ]; then
       echo "applying seed.sql"
       { cat supabase/seed.sql; printf "\n;insert into supabase_migrations.schema_migrations (version, name) values ('seed', 'seed');\n"; } |
         psql_db -1 -f - || return 1
     fi
   fi
+  # Test accounts from seed.sql: the password from docker/.env in test mode,
+  # a random unknown one otherwise (so they can't be used on a live server).
+  local pw=$TEST_ADMIN_PASSWORD
+  [ "${TEST_MODE:-true}" = true ] || pw=$(rand_pw)$(rand_pw)
+  psql_db -c "update auth.users set encrypted_password = extensions.crypt('$pw', extensions.gen_salt('bf'))
+    where email in ('admin@eventspace.mv', 'aminath@eventspace.mv', 'newbie@eventspace.mv')" >/dev/null || return 1
   psql_db -c "notify pgrst, 'reload schema'"
   echo "$applied new migration(s)"
 }
@@ -345,6 +370,13 @@ finale() {
   done
   printf '  %s╰%s╯%s\n' "$PINK" "$(printf '─%.0s' $(seq 1 $w))" "$R"
   echo
+  if [ "${TEST_MODE:-true}" = true ]; then
+    note "Test mode is on: sample events and venues are loaded. Tester sign-in (Email + Tester password):"
+    printf '    %sadmin%s     admin@eventspace.mv    %s%s%s\n' "$B" "$R" "$PINK" "$TEST_ADMIN_PASSWORD" "$R"
+    printf '    %suser%s      aminath@eventspace.mv  %s(same password)%s\n' "$B" "$R" "$GREY" "$R"
+    printf '    %snew user%s  newbie@eventspace.mv   %s(same password)%s\n' "$B" "$R" "$GREY" "$R"
+    note "Turn off for launch: TEST_MODE=false in $ENV_FILE, then ./deploy"
+  fi
   [ -z "${SMTP_HOST:-}" ] && warn "SMTP isn't set, so sign-in codes can't be emailed. Fill SMTP_* in $ENV_FILE, then ./deploy"
   note "Publishable key for the phone apps (EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY):"
   printf '    %s%s%s\n' "$GREY" "$ANON_KEY" "$R"
@@ -400,6 +432,7 @@ if [ -f "$ENV_FILE" ]; then
 else
   run "Generating secrets & config" make_env
 fi
+ensure_env_defaults
 set -a; . "./$ENV_FILE"; set +a
 pick_port
 
