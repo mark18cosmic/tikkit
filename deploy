@@ -371,13 +371,13 @@ finale() {
   printf '  %s╰%s╯%s\n' "$PINK" "$(printf '─%.0s' $(seq 1 $w))" "$R"
   echo
   if [ "${TEST_MODE:-true}" = true ]; then
-    note "Test mode is on: sample events and venues are loaded. Tester sign-in (Email + Tester password):"
+    note "Test mode is on: sample events and venues are loaded. Test accounts:"
     printf '    %sadmin%s     admin@eventspace.mv    %s%s%s\n' "$B" "$R" "$PINK" "$TEST_ADMIN_PASSWORD" "$R"
     printf '    %suser%s      aminath@eventspace.mv  %s(same password)%s\n' "$B" "$R" "$GREY" "$R"
     printf '    %snew user%s  newbie@eventspace.mv   %s(same password)%s\n' "$B" "$R" "$GREY" "$R"
     note "Turn off for launch: TEST_MODE=false in $ENV_FILE, then ./deploy"
   fi
-  [ -z "${SMTP_HOST:-}" ] && warn "SMTP isn't set, so sign-in codes can't be emailed. Fill SMTP_* in $ENV_FILE, then ./deploy"
+  [ -z "${SMTP_HOST:-}" ] && note "No SMTP set: sign-in is email + password. Fill SMTP_* in $ENV_FILE and ./deploy to switch to email codes."
   note "Publishable key for the phone apps (EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY):"
   printf '    %s%s%s\n' "$GREY" "$ANON_KEY" "$R"
   note "Logs: ./deploy logs   ·   Status: ./deploy status   ·   Stop: ./deploy down"
@@ -434,6 +434,10 @@ else
 fi
 ensure_env_defaults
 set -a; . "./$ENV_FILE"; set +a
+# Email codes need a mail server. Without one: password sign-in, and
+# accounts are confirmed on sign-up.
+if [ -n "${SMTP_HOST:-}" ]; then EMAIL_CODES=true MAILER_AUTOCONFIRM=false; else EMAIL_CODES=false MAILER_AUTOCONFIRM=true; fi
+export EMAIL_CODES MAILER_AUTOCONFIRM
 pick_port
 
 run "Pulling images" pull_images

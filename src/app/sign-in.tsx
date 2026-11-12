@@ -9,16 +9,28 @@ import { Container } from '@/components/Container';
 import { Field } from '@/components/Field';
 import { KeyboardScreen } from '@/components/KeyboardScreen';
 import { Wordmark } from '@/components/LogoMark';
-import { DEV_ACCOUNT, isEmail, sendEmailCode, signInWithGoogle, signInWithPassword, verifyEmailCode } from '@/lib/auth';
+import {
+  DEV_ACCOUNT,
+  isEmail,
+  sendEmailCode,
+  signInWithGoogle,
+  signInWithPassword,
+  signUpWithPassword,
+  verifyEmailCode,
+} from '@/lib/auth';
 import { errorFeedback, successFeedback } from '@/lib/haptics';
 import { space } from '@/theme/tokens';
 import { useColors } from '@/theme/useTheme';
 
 const RESEND_AFTER_S = 60;
 
-// Test servers (./deploy with TEST_MODE) also allow email + password, so
-// testers can sign in to the shared test accounts without email delivery.
+// Set at build time by ./deploy. Without a mail server there are no email
+// codes, so the screen uses email + password (sign in or create an account).
+const EMAIL_CODES = process.env.EXPO_PUBLIC_EMAIL_CODES !== 'false';
+const GOOGLE = process.env.EXPO_PUBLIC_GOOGLE_SIGN_IN !== 'false';
+// Test servers with email codes still let testers use the shared test accounts.
 const TESTER_LOGIN = process.env.EXPO_PUBLIC_TESTER_LOGIN === 'true';
+const MIN_PASSWORD = 10;
 
 // Only same-app paths, so a crafted link can't bounce people to another site.
 const safeNext = (next: unknown): Href | null =>
@@ -40,6 +52,7 @@ export default function SignIn() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState<'google' | 'send' | 'verify' | 'dev' | 'password' | null>(null);
   const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [error, setError] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
 
@@ -113,10 +126,13 @@ export default function SignIn() {
   const passwordSignIn = async () => {
     setError(null);
     if (!isEmail(email)) return fail(new Error('Enter a valid email address.'));
-    if (!password) return fail(new Error('Enter the password.'));
+    if (!password) return fail(new Error('Enter your password.'));
+    if (mode === 'signup' && password.length < MIN_PASSWORD)
+      return fail(new Error(`Choose a longer password: at least ${MIN_PASSWORD} characters.`));
     setBusy('password');
     try {
-      await signInWithPassword(email, password);
+      if (mode === 'signup') await signUpWithPassword(email, password);
+      else await signInWithPassword(email, password);
       finishSignIn(next);
     } catch (e) {
       fail(e);
@@ -203,15 +219,18 @@ export default function SignIn() {
           <AppText muted>Your tickets stay in your account, on every device.</AppText>
         </View>
 
-        <Button label="Continue with Google" icon={GoogleLogo} variant="secondary" loading={busy === 'google'} onPress={google} />
-
-        <View style={styles.or}>
-          <View style={[styles.rule, { backgroundColor: colors.border }]} />
-          <AppText variant="footnote" muted>
-            or
-          </AppText>
-          <View style={[styles.rule, { backgroundColor: colors.border }]} />
-        </View>
+        {GOOGLE && (
+          <>
+            <Button label="Continue with Google" icon={GoogleLogo} variant="secondary" loading={busy === 'google'} onPress={google} />
+            <View style={styles.or}>
+              <View style={[styles.rule, { backgroundColor: colors.border }]} />
+              <AppText variant="footnote" muted>
+                or
+              </AppText>
+              <View style={[styles.rule, { backgroundColor: colors.border }]} />
+            </View>
+          </>
+        )}
 
         <Field
           label="Email"
@@ -225,13 +244,47 @@ export default function SignIn() {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
-          returnKeyType="send"
-          onSubmitEditing={send}
-          helper="We’ll email you a 6-digit code. No password needed."
+          returnKeyType={EMAIL_CODES ? 'send' : 'next'}
+          onSubmitEditing={EMAIL_CODES ? send : undefined}
+          helper={EMAIL_CODES ? 'We’ll email you a 6-digit code. No password needed.' : undefined}
         />
-        <Button label="Email me a code" loading={busy === 'send'} onPress={send} />
+        {EMAIL_CODES ? (
+          <Button label="Email me a code" loading={busy === 'send'} onPress={send} />
+        ) : (
+          <>
+            <Field
+              label="Password"
+              value={password}
+              onChangeText={(t) => {
+                setPassword(t);
+                setError(null);
+              }}
+              secureTextEntry
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              textContentType={mode === 'signup' ? 'newPassword' : 'password'}
+              autoCapitalize="none"
+              autoCorrect={false}
+              returnKeyType="go"
+              onSubmitEditing={passwordSignIn}
+              helper={mode === 'signup' ? `At least ${MIN_PASSWORD} characters.` : undefined}
+            />
+            <Button
+              label={mode === 'signup' ? 'Create account' : 'Sign in'}
+              loading={busy === 'password'}
+              onPress={passwordSignIn}
+            />
+            <Button
+              label={mode === 'signup' ? 'Have an account? Sign in' : 'New here? Create an account'}
+              variant="plain"
+              onPress={() => {
+                setMode(mode === 'signup' ? 'signin' : 'signup');
+                setError(null);
+              }}
+            />
+          </>
+        )}
         {errorText}
-        {TESTER_LOGIN && !__DEV__ && (
+        {EMAIL_CODES && TESTER_LOGIN && !__DEV__ && (
           <View style={[styles.dev, { borderColor: colors.border }]}>
             <AppText variant="footnote" muted>
               Test server: sign in with a tester email and password instead.

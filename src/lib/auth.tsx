@@ -123,6 +123,18 @@ export async function signInWithPassword(email: string, password: string) {
   if (error) throw new Error(/invalid login/i.test(error.message) ? 'That email and password don’t match.' : friendlyError(error));
 }
 
+// New account with email + password (servers without email delivery confirm it
+// straight away, so this signs the person in).
+export async function signUpWithPassword(email: string, password: string) {
+  const { data, error } = await supabase.auth.signUp({ email: email.trim().toLowerCase(), password });
+  if (error) {
+    if (/already registered|already exists/i.test(error.message)) throw new Error('There’s already an account with that email. Sign in instead.');
+    if (/password/i.test(error.message)) throw new Error('Choose a longer password: at least 10 characters.');
+    throw new Error(friendlyError(error));
+  }
+  if (!data.session) throw new Error('Check your email to confirm your account, then sign in.');
+}
+
 export async function signInWithGoogle(): Promise<boolean> {
   if (!(await googleEnabled())) {
     throw new Error('Google sign-in isn’t set up on this server yet. Use an email code instead.');
