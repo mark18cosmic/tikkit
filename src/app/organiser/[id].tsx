@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { CalendarX, CheckCircle, Info, LockSimple, MagnifyingGlass, PencilSimple, QrCode, X } from 'phosphor-react-native';
+import { CalendarX, CheckCircle, Info, LockSimple, MagnifyingGlass, PencilSimple, QrCode, X } from '@/components/icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 

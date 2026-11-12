@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import { CheckCircle, Copy, InstagramLogo, SmileySad } from 'phosphor-react-native';
+import { CheckCircle, Copy, InstagramLogo, SmileySad } from '@/components/icons';
 import { useEffect, useRef, useState } from 'react';
 import { PixelRatio, Platform, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';

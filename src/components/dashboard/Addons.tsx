@@ -1,4 +1,4 @@
-import { Boat, Package, Trash, UsersThree } from 'phosphor-react-native';
+import { Boat, Package, Trash, UsersThree } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 

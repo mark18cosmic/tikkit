@@ -1,5 +1,5 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Boat, Buildings, CalendarBlank, Flag, MapPin, PencilSimple, Plus, SealCheck, Users } from 'phosphor-react-native';
+import { Boat, Buildings, CalendarBlank, Flag, MapPin, PencilSimple, Plus, SealCheck, Users } from '@/components/icons';
 import { useCallback } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

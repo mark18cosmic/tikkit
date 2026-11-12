@@ -1,4 +1,4 @@
-import { CheckCircle, ClockCountdown, IdentificationCard, WarningCircle, XCircle } from 'phosphor-react-native';
+import { CheckCircle, ClockCountdown, IdentificationCard, WarningCircle, XCircle } from '@/components/icons';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from './AppText';

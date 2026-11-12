@@ -1,6 +1,6 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, ImageSquare } from 'phosphor-react-native';
+import { Camera, ImageSquare } from '@/components/icons';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from './AppText';

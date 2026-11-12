@@ -17,9 +17,12 @@ ENV EXPO_PUBLIC_SUPABASE_URL=$EXPO_PUBLIC_SUPABASE_URL \
     EXPO_PUBLIC_FACEBOOK_APP_ID=$EXPO_PUBLIC_FACEBOOK_APP_ID \
     NODE_ENV=production \
     NODE_OPTIONS=--max-old-space-size=3072
-RUN npx expo export -p web --output-dir dist
+RUN npx expo export -p web --output-dir dist \
+ && find dist -type f \( -name '*.js' -o -name '*.html' -o -name '*.css' -o -name '*.json' -o -name '*.svg' -o -name '*.ttf' \) \
+      -exec gzip -9 -k {} \;
 
 FROM nginx:1.29-alpine
+LABEL tikkit=gateway
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY supabase/templates/ /usr/share/nginx/templates/
 COPY --from=build /app/dist /usr/share/nginx/html

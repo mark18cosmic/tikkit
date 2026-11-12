@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams, type Href } from 'expo-router';
-import { GoogleLogo } from 'phosphor-react-native';
+import { GoogleLogo } from '@/components/icons';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CalendarCheck, Crown, SealCheck, Star, Ticket, type Icon } from 'phosphor-react-native';
+import { CalendarCheck, Crown, SealCheck, Star, Ticket, type Icon } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 

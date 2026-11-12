@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { LockSimple, Warning } from 'phosphor-react-native';
+import { LockSimple, Warning } from '@/components/icons';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 

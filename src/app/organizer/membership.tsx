@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Crown } from 'phosphor-react-native';
+import { Crown } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
 

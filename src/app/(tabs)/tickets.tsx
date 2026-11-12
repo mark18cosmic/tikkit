@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Ticket as TicketIcon, UserCircle } from 'phosphor-react-native';
+import { Ticket as TicketIcon, UserCircle } from '@/components/icons';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

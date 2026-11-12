@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Compass, Ticket, UserCircle } from 'phosphor-react-native';
+import { Compass, Ticket, UserCircle } from '@/components/icons';
 
 import { DesktopNav } from '@/components/DesktopNav';
 import { useLayout } from '@/lib/useLayout';

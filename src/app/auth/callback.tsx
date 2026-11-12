@@ -6,7 +6,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { EmptyState } from '@/components/EmptyState';
 import { completeOAuth, useAuth } from '@/lib/auth';
 import { useColors } from '@/theme/useTheme';
-import { SmileySad } from 'phosphor-react-native';
+import { SmileySad } from '@/components/icons';
 
 // Where Google sends people back to. On web the Supabase client exchanges the
 // code itself; on Android the deep link can also open this screen directly.

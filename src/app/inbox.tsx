@@ -9,7 +9,7 @@ import {
   SealCheck,
   Ticket,
   type Icon,
-} from 'phosphor-react-native';
+} from '@/components/icons';
 import { useCallback, useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 

@@ -1,4 +1,4 @@
-import { CheckCircle, Info, WarningCircle } from 'phosphor-react-native';
+import { CheckCircle, Info, WarningCircle } from '@/components/icons';
 import { useEffect, type ReactNode } from 'react';
 import { BackHandler, Platform, Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';

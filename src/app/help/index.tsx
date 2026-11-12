@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Lifebuoy, ShieldCheck } from 'phosphor-react-native';
+import { Lifebuoy, ShieldCheck } from '@/components/icons';
 import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/AppText';

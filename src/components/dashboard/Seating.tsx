@@ -1,4 +1,4 @@
-import { Armchair, LockSimple, Plus, Trash } from 'phosphor-react-native';
+import { Armchair, LockSimple, Plus, Trash } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 

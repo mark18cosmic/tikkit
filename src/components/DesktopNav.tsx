@@ -1,6 +1,6 @@
 import type { BottomTabBarProps } from 'expo-router/tabs';
 import { router } from 'expo-router';
-import { ArrowLeft, Plus } from 'phosphor-react-native';
+import { ArrowLeft, Plus } from '@/components/icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from './AppText';

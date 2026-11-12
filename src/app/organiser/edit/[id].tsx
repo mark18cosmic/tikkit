@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { LockSimple } from 'phosphor-react-native';
+import { LockSimple } from '@/components/icons';
 
 import { EmptyState } from '@/components/EmptyState';
 import { EventWizard, type WizardResult, type WizardValues } from '@/components/EventWizard';

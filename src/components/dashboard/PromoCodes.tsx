@@ -1,4 +1,4 @@
-import { Ticket } from 'phosphor-react-native';
+import { Ticket } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { StyleSheet, Switch, View } from 'react-native';
 

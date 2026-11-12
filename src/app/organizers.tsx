@@ -1,4 +1,4 @@
-import { MagnifyingGlass, UsersThree, X } from 'phosphor-react-native';
+import { MagnifyingGlass, UsersThree, X } from '@/components/icons';
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 

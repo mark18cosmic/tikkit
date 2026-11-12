@@ -13,7 +13,7 @@ import {
   UsersThree,
   WifiSlash,
   type Icon,
-} from 'phosphor-react-native';
+} from '@/components/icons';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 

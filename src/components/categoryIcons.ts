@@ -15,7 +15,7 @@ import {
   UsersThree,
   Waves,
   type Icon,
-} from 'phosphor-react-native';
+} from '@/components/icons';
 
 import type { Category } from '@/data/events';
 

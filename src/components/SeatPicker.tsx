@@ -1,4 +1,4 @@
-import { Check, LockSimple, X } from 'phosphor-react-native';
+import { Check, LockSimple, X } from '@/components/icons';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 

@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, Flag } from 'phosphor-react-native';
+import { CheckCircle, Flag } from '@/components/icons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 

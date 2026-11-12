@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bank, Buildings, CheckCircle, ClockCountdown, SealCheck, ShieldCheck, Storefront, type Icon } from 'phosphor-react-native';
+import { Bank, Buildings, CheckCircle, ClockCountdown, SealCheck, ShieldCheck, Storefront, type Icon } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 

@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Buildings, CaretRight, ClockCountdown, MagnifyingGlass, Plus, QrCode, SealCheck, UsersThree, Wallet } from 'phosphor-react-native';
+import { Buildings, CaretRight, ClockCountdown, MagnifyingGlass, Plus, QrCode, SealCheck, UsersThree, Wallet } from '@/components/icons';
 import { useCallback } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 

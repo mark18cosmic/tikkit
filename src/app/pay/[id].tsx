@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 import { router, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { Bank, CheckCircle, ClockCountdown, Copy, CreditCard, ShieldCheck, XCircle, type Icon } from 'phosphor-react-native';
+import { Bank, CheckCircle, ClockCountdown, Copy, CreditCard, ShieldCheck, XCircle, type Icon } from '@/components/icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';

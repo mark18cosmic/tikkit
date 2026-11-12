@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CaretRight, SealCheck } from 'phosphor-react-native';
+import { CaretRight, SealCheck } from '@/components/icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from './AppText';

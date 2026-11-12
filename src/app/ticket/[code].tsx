@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowsLeftRight, CaretLeft, CaretRight, InstagramLogo, NavigationArrow, Receipt, SmileySad } from 'phosphor-react-native';
+import { ArrowsLeftRight, CaretLeft, CaretRight, InstagramLogo, NavigationArrow, Receipt, SmileySad } from '@/components/icons';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 

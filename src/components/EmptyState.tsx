@@ -1,4 +1,4 @@
-import type { Icon } from 'phosphor-react-native';
+import type { Icon } from '@/components/icons';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from './AppText';

@@ -1,4 +1,4 @@
-import { CalendarBlank, CaretLeft, CaretRight, Clock } from 'phosphor-react-native';
+import { CalendarBlank, CaretLeft, CaretRight, Clock } from '@/components/icons';
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';

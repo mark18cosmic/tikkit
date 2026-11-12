@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { CalendarBlank, CalendarX, CreditCard, EnvelopeSimple, Money, Plus } from 'phosphor-react-native';
+import { CalendarBlank, CalendarX, CreditCard, EnvelopeSimple, Money, Plus } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 

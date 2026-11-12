@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { CaretLeft, ImageSquare, PencilSimple, Plus, Trash } from 'phosphor-react-native';
+import { CaretLeft, ImageSquare, PencilSimple, Plus, Trash } from '@/components/icons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 

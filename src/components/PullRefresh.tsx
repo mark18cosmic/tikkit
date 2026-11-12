@@ -1,4 +1,4 @@
-import { CheckCircle, WifiSlash } from 'phosphor-react-native';
+import { CheckCircle, WifiSlash } from '@/components/icons';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform, RefreshControl, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import Animated, {

@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { Bell, FileText, Lifebuoy, LockKey, SignOut, Trash } from 'phosphor-react-native';
+import { Bell, FileText, Lifebuoy, LockKey, SignOut, Trash } from '@/components/icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Switch, View } from 'react-native';

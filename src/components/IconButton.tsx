@@ -1,4 +1,4 @@
-import type { Icon } from 'phosphor-react-native';
+import type { Icon } from '@/components/icons';
 import { Pressable, StyleSheet, type PressableProps } from 'react-native';
 
 import { tapFeedback } from '@/lib/haptics';

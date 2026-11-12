@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Crown, Repeat } from 'phosphor-react-native';
+import { Crown, Repeat } from '@/components/icons';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 

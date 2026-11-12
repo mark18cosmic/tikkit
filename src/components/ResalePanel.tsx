@@ -1,4 +1,4 @@
-import { Tag } from 'phosphor-react-native';
+import { Tag } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 

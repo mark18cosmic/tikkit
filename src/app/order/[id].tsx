@@ -1,5 +1,5 @@
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, Gift } from 'phosphor-react-native';
+import { CheckCircle, Gift } from '@/components/icons';
 import { useCallback } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';

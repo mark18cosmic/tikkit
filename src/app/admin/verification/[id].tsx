@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { FileText, MapPin, SmileySad } from 'phosphor-react-native';
+import { FileText, MapPin, SmileySad } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 

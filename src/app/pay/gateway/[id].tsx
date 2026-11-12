@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { CreditCard, Flask, LockSimple } from 'phosphor-react-native';
+import { CreditCard, Flask, LockSimple } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 

@@ -1,4 +1,4 @@
-import { Star } from 'phosphor-react-native';
+import { Star } from '@/components/icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { tapFeedback } from '@/lib/haptics';

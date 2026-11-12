@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ChartLineUp, Crown, Link as LinkIcon, MegaphoneSimple, Percent, RocketLaunch, type Icon } from 'phosphor-react-native';
+import { ChartLineUp, Crown, Link as LinkIcon, MegaphoneSimple, Percent, RocketLaunch, type Icon } from '@/components/icons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 

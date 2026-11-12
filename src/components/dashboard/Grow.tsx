@@ -1,6 +1,6 @@
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
-import { CheckCircle, Copy, Crown, Link as LinkIcon, MegaphoneSimple, RocketLaunch } from 'phosphor-react-native';
+import { CheckCircle, Copy, Crown, Link as LinkIcon, MegaphoneSimple, RocketLaunch } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { Pressable, Share, StyleSheet, Switch, View } from 'react-native';
 

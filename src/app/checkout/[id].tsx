@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { Boat, Crown, Gift, Package, ShieldCheck, Ticket } from 'phosphor-react-native';
+import { Boat, Crown, Gift, Package, ShieldCheck, Ticket } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 

@@ -7,6 +7,7 @@
 #   ./deploy status     show containers
 #   ./deploy logs [svc] follow logs (gateway, auth, rest, storage, functions, db)
 #   ./deploy down       stop everything (data is kept in Docker volumes)
+#   ./deploy reset      stop and DELETE the database and uploads (asks first)
 #
 # Settings and secrets live in docker/.env (created on the first run, never
 # committed). It scans for a free port from 8090 (or APP_PORT=9000 ./deploy)
@@ -113,11 +114,24 @@ run() {
     printf '\r\033[K  %s✘ %s%s  %s(%ss)%s\n\n' "$RED" "$label" "$R" "$GREY" "$t" "$R"
     printf '  %sLast lines of %s:%s\n' "$YEL" "$LOG" "$R"
     tail -n 25 "$LOG" | sed 's/^/    │ /'
+    show_sick
     printf '\n  %sFull log: %s%s\n\n' "$GREY" "$ROOT/$LOG" "$R"
     show_cursor
     exit 1
   fi
   show_cursor
+}
+
+# On failure: the logs of any container that's unhealthy, restarting or dead.
+show_sick() {
+  [ -f "$ENV_FILE" ] || return 0
+  local svc state health
+  "${DC[@]}" ps -a --format '{{.Service}} {{.State}} {{.Health}}' 2>/dev/null |
+    while read -r svc state health; do
+      case "$state/$health" in running/healthy | running/ | created/*) continue ;; esac
+      printf '\n  %s%s is %s%s — its last log lines:%s\n' "$YEL" "$svc" "$state" "${health:+ ($health)}" "$R"
+      "${DC[@]}" logs --no-color --tail 20 "$svc" 2>&1 | sed 's/^/    │ /'
+    done
 }
 
 note() { printf '  %s•%s %s\n' "$GREY" "$R" "$*"; }
@@ -239,7 +253,11 @@ EOF
 }
 
 pull_images() { "${DC[@]}" pull --quiet db auth rest storage functions; }
-build_web() { "${DC[@]}" build gateway; }
+build_web() {
+  "${DC[@]}" build gateway || return 1
+  # Drop the previous build's image so rebuilds don't pile up on disk.
+  docker image prune -f --filter label=tikkit=gateway
+}
 start_db() {
   "${DC[@]}" up -d --wait db
 }
@@ -313,7 +331,15 @@ case "${1:-up}" in
   status) [ -f "$ENV_FILE" ] || die "not deployed yet"; exec "${DC[@]}" ps ;;
   logs) [ -f "$ENV_FILE" ] || die "not deployed yet"; shift; exec "${DC[@]}" logs -f --tail 100 "$@" ;;
   down) [ -f "$ENV_FILE" ] || die "not deployed yet"; exec "${DC[@]}" down ;;
-  -h | --help | help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  reset)
+    [ -f "$ENV_FILE" ] || die "not deployed yet"
+    printf '\n  %s%sThis deletes the Tikkit database and all uploaded files.%s\n' "$RED" "$B" "$R"
+    printf '  Type %sreset%s to confirm: ' "$B" "$R"
+    read -r answer
+    [ "$answer" = reset ] || die "cancelled, nothing deleted"
+    "${DC[@]}" down -v --remove-orphans && printf '\n  %s✔%s wiped. Run ./deploy to start fresh.\n\n' "$GREEN" "$R"
+    exit ;;
+  -h | --help | help) sed -n '2,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   up | --seed | --no-pull) ;;
   *) die "unknown command: $1 (try ./deploy help)" ;;
 esac

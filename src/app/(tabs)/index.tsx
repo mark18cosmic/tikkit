@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
-import { Bell, CaretRight, CloudSlash, MagnifyingGlass, NavigationArrow, ShieldCheck, SmileySad, XCircle } from 'phosphor-react-native';
+import { Bell, CaretRight, CloudSlash, MagnifyingGlass, NavigationArrow, ShieldCheck, SmileySad, XCircle } from '@/components/icons';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';

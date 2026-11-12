@@ -1,4 +1,4 @@
-import { CalendarX, ClockClockwise, MegaphoneSimple } from 'phosphor-react-native';
+import { CalendarX, ClockClockwise, MegaphoneSimple } from '@/components/icons';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from './AppText';

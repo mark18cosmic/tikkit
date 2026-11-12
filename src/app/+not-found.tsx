@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { SmileySad } from 'phosphor-react-native';
+import { SmileySad } from '@/components/icons';
 import { View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';

@@ -1,4 +1,4 @@
-import { Minus, Plus } from 'phosphor-react-native';
+import { Minus, Plus } from '@/components/icons';
 import { StyleSheet, View } from 'react-native';
 
 import { AppText } from './AppText';

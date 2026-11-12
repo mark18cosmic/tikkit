@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { Crown, Flag, PencilSimple, SealCheck, UsersThree } from 'phosphor-react-native';
+import { Crown, Flag, PencilSimple, SealCheck, UsersThree } from '@/components/icons';
 import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 

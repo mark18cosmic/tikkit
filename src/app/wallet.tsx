@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ArrowDown, ArrowUp, Bank, ClockCountdown, LockSimple, Wallet as WalletIcon } from 'phosphor-react-native';
+import { ArrowDown, ArrowUp, Bank, ClockCountdown, LockSimple, Wallet as WalletIcon } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 

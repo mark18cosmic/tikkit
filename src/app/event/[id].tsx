@@ -19,7 +19,7 @@ import {
   ShareNetwork,
   SmileySad,
   User,
-} from 'phosphor-react-native';
+} from '@/components/icons';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { Extrapolation, interpolate, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';

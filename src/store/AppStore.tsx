@@ -215,14 +215,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       .catch(() => dispatch({ type: 'hydrate', prefs: {}, events: [] }));
   }, []);
 
+  // Persist preferences only when one of them changes, not on every state update.
+  const { hydrated, saved, following, followed, seenUpdates, waitlist, remindersEnabled, reminderIds } = state;
   useEffect(() => {
-    if (!state.hydrated) return;
-    const { saved, following, followed, seenUpdates, waitlist, remindersEnabled, reminderIds } = state;
+    if (!hydrated) return;
     AsyncStorage.setItem(
       PREFS_KEY,
       JSON.stringify({ saved, following, followed, seenUpdates, waitlist, remindersEnabled, reminderIds }),
     ).catch(() => {});
-  }, [state]);
+  }, [hydrated, saved, following, followed, seenUpdates, waitlist, remindersEnabled, reminderIds]);
 
   const refreshEvents = useCallback(async () => {
     dispatch({ type: 'events', state: 'loading' });
@@ -307,9 +308,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [authReady, userId, refreshTickets]);
 
   // Back in the foreground: pick up check-ins, transfers and new events.
+  // At most once a minute, so flicking between apps doesn't refetch everything.
+  const lastForeground = useRef(0);
   useEffect(() => {
     const sub = AppState.addEventListener('change', (s) => {
       if (s !== 'active') return;
+      if (Date.now() - lastForeground.current < 60_000) return;
+      lastForeground.current = Date.now();
       refreshEvents();
       refreshTickets();
       refreshStatus();

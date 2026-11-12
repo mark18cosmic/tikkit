@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CaretRight, Flag, ShieldWarning } from 'phosphor-react-native';
+import { CaretRight, Flag, ShieldWarning } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 

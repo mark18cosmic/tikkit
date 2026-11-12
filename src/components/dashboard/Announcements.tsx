@@ -1,4 +1,4 @@
-import { MegaphoneSimple } from 'phosphor-react-native';
+import { MegaphoneSimple } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 

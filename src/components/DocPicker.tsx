@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { CheckCircle, FileArrowUp } from 'phosphor-react-native';
+import { CheckCircle, FileArrowUp } from '@/components/icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from './AppText';

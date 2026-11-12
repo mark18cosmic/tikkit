@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { CheckCircle, ClockCountdown, MapPinLine, SmileySad } from 'phosphor-react-native';
+import { CheckCircle, ClockCountdown, MapPinLine, SmileySad } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 

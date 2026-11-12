@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { UsersThree } from 'phosphor-react-native';
+import { UsersThree } from '@/components/icons';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 

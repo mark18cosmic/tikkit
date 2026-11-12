@@ -1,5 +1,5 @@
 import { usePathname } from 'expo-router';
-import { UserCircle } from 'phosphor-react-native';
+import { UserCircle } from '@/components/icons';
 import type { ReactNode } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 

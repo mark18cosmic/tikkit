@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Boat, Megaphone, ShieldCheck, type Icon } from 'phosphor-react-native';
+import { Boat, Megaphone, ShieldCheck, type Icon } from '@/components/icons';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated from 'react-native-reanimated';

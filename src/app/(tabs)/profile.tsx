@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bell, Buildings, Camera, ChartBar, Crown, GearSix, Heart, Lifebuoy, QrCode, SealCheck, ShieldStar, User, Wallet } from 'phosphor-react-native';
+import { Bell, Buildings, Camera, ChartBar, Crown, GearSix, Heart, Lifebuoy, QrCode, SealCheck, ShieldStar, User, Wallet } from '@/components/icons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

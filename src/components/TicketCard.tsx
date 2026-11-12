@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { CaretRight } from 'phosphor-react-native';
+import { CaretRight } from '@/components/icons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from './AppText';

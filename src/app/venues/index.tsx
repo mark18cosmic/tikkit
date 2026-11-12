@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Buildings, Plus, Star } from 'phosphor-react-native';
+import { Buildings, Plus, Star } from '@/components/icons';
 import { useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
