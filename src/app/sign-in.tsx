@@ -28,8 +28,14 @@ const RESEND_AFTER_S = 60;
 // codes, so the screen uses email + password (sign in or create an account).
 const EMAIL_CODES = process.env.EXPO_PUBLIC_EMAIL_CODES !== 'false';
 const GOOGLE = process.env.EXPO_PUBLIC_GOOGLE_SIGN_IN !== 'false';
-// Test servers with email codes still let testers use the shared test accounts.
-const TESTER_LOGIN = process.env.EXPO_PUBLIC_TESTER_LOGIN === 'true';
+// Test servers (./deploy with TEST_MODE) show one-tap buttons for the shared
+// test accounts from supabase/seed.sql.
+const TEST_PASSWORD = process.env.EXPO_PUBLIC_TESTER_LOGIN === 'true' ? (process.env.EXPO_PUBLIC_TEST_PASSWORD ?? '') : '';
+const TEST_ACCOUNTS = [
+  { label: 'Admin', email: 'admin@eventspace.mv', about: 'Owns the sample events and spaces' },
+  { label: 'User', email: 'aminath@eventspace.mv', about: 'Has tickets and follows organisers' },
+  { label: 'New user', email: 'newbie@eventspace.mv', about: 'A fresh account' },
+] as const;
 const MIN_PASSWORD = 10;
 
 // Only same-app paths, so a crafted link can't bounce people to another site.
@@ -50,7 +56,7 @@ export default function SignIn() {
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [busy, setBusy] = useState<'google' | 'send' | 'verify' | 'dev' | 'password' | null>(null);
+  const [busy, setBusy] = useState<'google' | 'send' | 'verify' | 'dev' | 'password' | `test:${string}` | null>(null);
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +139,19 @@ export default function SignIn() {
     try {
       if (mode === 'signup') await signUpWithPassword(email, password);
       else await signInWithPassword(email, password);
+      finishSignIn(next);
+    } catch (e) {
+      fail(e);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const testSignIn = async (accountEmail: string) => {
+    setError(null);
+    setBusy(`test:${accountEmail}`);
+    try {
+      await signInWithPassword(accountEmail, TEST_PASSWORD);
       finishSignIn(next);
     } catch (e) {
       fail(e);
@@ -284,27 +303,30 @@ export default function SignIn() {
           </>
         )}
         {errorText}
-        {EMAIL_CODES && TESTER_LOGIN && !__DEV__ && (
+        {!!TEST_PASSWORD && !__DEV__ && (
           <View style={[styles.dev, { borderColor: colors.border }]}>
+            <AppText variant="headline">Test accounts</AppText>
             <AppText variant="footnote" muted>
-              Test server: sign in with a tester email and password instead.
+              Tap one to sign straight in.
             </AppText>
-            <Field
-              label="Tester password"
-              value={password}
-              onChangeText={(t) => {
-                setPassword(t);
-                setError(null);
-              }}
-              secureTextEntry
-              autoComplete="current-password"
-              textContentType="password"
-              autoCapitalize="none"
-              autoCorrect={false}
-              returnKeyType="go"
-              onSubmitEditing={passwordSignIn}
-            />
-            <Button label="Sign in with password" variant="secondary" loading={busy === 'password'} onPress={passwordSignIn} />
+            {TEST_ACCOUNTS.map((a) => (
+              <View key={a.email} style={styles.testRow}>
+                <View style={styles.testText}>
+                  <AppText variant="body">{a.label}</AppText>
+                  <AppText variant="footnote" muted numberOfLines={1}>
+                    {a.email} · {a.about}
+                  </AppText>
+                </View>
+                <Button
+                  label="Sign in"
+                  variant="secondary"
+                  loading={busy === `test:${a.email}`}
+                  disabled={busy !== null && busy !== `test:${a.email}`}
+                  onPress={() => testSignIn(a.email)}
+                  accessibilityLabel={`Sign in as ${a.label}, ${a.email}`}
+                />
+              </View>
+            ))}
           </View>
         )}
         {__DEV__ && (
@@ -330,4 +352,6 @@ const styles = StyleSheet.create({
   code: { fontSize: 28, lineHeight: 34, letterSpacing: 8, fontVariant: ['tabular-nums'] },
   links: { alignItems: 'flex-start' },
   dev: { borderTopWidth: StyleSheet.hairlineWidth, paddingTop: space.md, gap: space.xs },
+  testRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingVertical: space.xs },
+  testText: { flex: 1, gap: 2 },
 });

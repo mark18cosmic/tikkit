@@ -202,6 +202,7 @@ services:
         EXPO_PUBLIC_SHARE_URL: ${PUBLIC_URL}/functions/v1/share
         EXPO_PUBLIC_FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
         EXPO_PUBLIC_TESTER_LOGIN: ${TEST_MODE:-true}
+        EXPO_PUBLIC_TEST_PASSWORD: ${TEST_LOGIN_PASSWORD:-}
         EXPO_PUBLIC_EMAIL_CODES: ${EMAIL_CODES:-false}
         EXPO_PUBLIC_GOOGLE_SIGN_IN: ${GOOGLE_ENABLED:-false}
     image: tikkit-gateway:latest

@@ -438,6 +438,9 @@ set -a; . "./$ENV_FILE"; set +a
 # accounts are confirmed on sign-up.
 if [ -n "${SMTP_HOST:-}" ]; then EMAIL_CODES=true MAILER_AUTOCONFIRM=false; else EMAIL_CODES=false MAILER_AUTOCONFIRM=true; fi
 export EMAIL_CODES MAILER_AUTOCONFIRM
+# One-tap test-account buttons in the app (test mode only; never on launch builds).
+if [ "${TEST_MODE:-true}" = true ]; then TEST_LOGIN_PASSWORD=$TEST_ADMIN_PASSWORD; else TEST_LOGIN_PASSWORD=; fi
+export TEST_LOGIN_PASSWORD
 pick_port
 
 run "Pulling images" pull_images
