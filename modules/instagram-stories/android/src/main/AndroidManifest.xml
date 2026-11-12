@@ -1,0 +1,21 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Android 11+ only lets the app see Instagram if it says so. -->
+  <queries>
+    <package android:name="com.instagram.android" />
+    <intent>
+      <action android:name="com.instagram.share.ADD_TO_STORY" />
+    </intent>
+  </queries>
+  <application>
+    <!-- Its own subclass, so it never clashes with other libraries' FileProviders. -->
+    <provider
+      android:name="expo.modules.instagramstories.InstagramStoriesFileProvider"
+      android:authorities="${applicationId}.instagramstories"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/instagram_stories_paths" />
+    </provider>
+  </application>
+</manifest>

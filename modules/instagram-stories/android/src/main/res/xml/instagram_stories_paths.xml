@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The story image is captured into the app's cache before sharing. -->
+<paths>
+  <cache-path name="story" path="." />
+</paths>

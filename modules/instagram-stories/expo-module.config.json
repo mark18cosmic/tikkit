@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android"],
+  "apple": {
+    "modules": ["InstagramStoriesModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.instagramstories.InstagramStoriesModule"]
+  }
+}

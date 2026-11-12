@@ -1,0 +1,343 @@
+#!/usr/bin/env bash
+# Tikkit deploy: builds and runs the whole stack with Docker on this machine.
+#
+#   ./deploy            build + start (safe to re-run; it updates in place)
+#   ./deploy --seed     also load supabase/seed.sql demo data (first run only)
+#   ./deploy status     show containers
+#   ./deploy logs [svc] follow logs (gateway, auth, rest, storage, functions, db)
+#   ./deploy down       stop everything (data is kept in Docker volumes)
+#
+# Settings and secrets live in docker/.env (created on the first run, never
+# committed). It scans for a free port from 8090 (or APP_PORT=9000 ./deploy)
+# and moves to the next free one if the saved port gets taken.
+# Override the IP with PUBLIC_IP=1.2.3.4 ./deploy on the first run.
+
+set -uo pipefail
+cd "$(dirname "$0")"
+
+ROOT=$PWD
+ENV_FILE=docker/.env
+LOG=docker/deploy.log
+DC=(docker compose -p tikkit --env-file "$ENV_FILE" -f docker/compose.yml)
+
+# ── look ─────────────────────────────────────────────────────────────────────
+if [ -t 1 ] && [ "${NO_COLOR:-}" = "" ]; then
+  TTY=1
+  c() { printf '\033[38;5;%sm' "$1"; }
+  B=$'\033[1m'; D=$'\033[2m'; R=$'\033[0m'
+else
+  TTY=0
+  c() { :; }
+  B=; D=; R=
+fi
+GREEN=$(c 84); RED=$(c 203); YEL=$(c 221); PINK=$(c 213); PURP=$(c 141); CYAN=$(c 117); GREY=$(c 245)
+nap() { [ "$TTY" = 1 ] && sleep "$1"; return 0; }
+hide_cursor() { [ "$TTY" = 1 ] && printf '\033[?25l'; return 0; }
+show_cursor() { [ "$TTY" = 1 ] && printf '\033[?25h'; return 0; }
+JOB=
+cleanup() { [ -n "$JOB" ] && kill "$JOB" 2>/dev/null; show_cursor; }
+trap cleanup EXIT
+trap 'printf "\n%s  aborted%s\n" "$RED" "$R"; exit 130' INT TERM
+
+LOGO=(
+"  ████████╗██╗██╗  ██╗██╗  ██╗██╗████████╗"
+"  ╚══██╔══╝██║██║ ██╔╝██║ ██╔╝██║╚══██╔══╝"
+"     ██║   ██║█████╔╝ █████╔╝ ██║   ██║   "
+"     ██║   ██║██╔═██╗ ██╔═██╗ ██║   ██║   "
+"     ██║   ██║██║  ██╗██║  ██╗██║   ██║   "
+"     ╚═╝   ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝   ╚═╝   "
+)
+GRAD=(219 213 207 171 135 99)
+
+typeout() { # text, delay per char
+  local s=$1 i
+  if [ "$TTY" = 1 ]; then
+    for ((i = 0; i < ${#s}; i++)); do printf '%s' "${s:i:1}"; sleep "$2"; done
+  else
+    printf '%s' "$s"
+  fi
+}
+
+banner() {
+  clear_screen=${1:-1}
+  [ "$TTY" = 1 ] && [ "$clear_screen" = 1 ] && printf '\033[2J\033[H'
+  echo
+  local i
+  for i in "${!LOGO[@]}"; do
+    printf '%s%s%s%s\n' "$B" "$(c "${GRAD[$i]}")" "${LOGO[$i]}" "$R"
+    nap 0.06
+  done
+  echo
+  printf '  %s' "$GREY"
+  typeout "┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈" 0.004
+  printf '%s\n  %s' "$R" "$PURP"
+  typeout "  ✦ deploy · postgres · auth · storage · web" 0.012
+  printf '%s\n\n' "$R"
+}
+
+STEP=0
+TOTAL=10
+bar() { # filled width out of 20
+  local n=$((STEP * 20 / TOTAL)) i s=
+  for ((i = 0; i < 20; i++)); do [ $i -lt $n ] && s="$s█" || s="$s░"; done
+  printf '%s' "$s"
+}
+
+# run "Label" command...   spinner + timer while it runs, output goes to $LOG
+run() {
+  local label=$1; shift
+  STEP=$((STEP + 1))
+  printf '\n━━ [%d/%d] %s\n' "$STEP" "$TOTAL" "$label" >>"$LOG"
+  local start=$SECONDS
+  "$@" >>"$LOG" 2>&1 &
+  JOB=$!
+  if [ "$TTY" = 1 ]; then
+    hide_cursor
+    local frames=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏) f=0 pos=0 dir=1 track
+    while kill -0 "$JOB" 2>/dev/null; do
+      track=$(printf '%*s' "$pos" '')"▰▰▰"$(printf '%*s' $((9 - pos)) '')
+      printf '\r\033[K  %s%s%s %s%-34s%s %s%s%s %s%3ss%s' \
+        "$PINK" "${frames[f]}" "$R" "$B" "$label" "$R" "$PURP" "$track" "$R" "$GREY" $((SECONDS - start)) "$R"
+      f=$(((f + 1) % 10))
+      pos=$((pos + dir)); { [ $pos -ge 9 ] || [ $pos -le 0 ]; } && dir=$((-dir))
+      sleep 0.08
+    done
+  fi
+  wait "$JOB"; local rc=$?
+  JOB=
+  local t=$((SECONDS - start))
+  if [ $rc -eq 0 ]; then
+    printf '\r\033[K  %s✔%s %-34s %s%s%s %s%3ss%s\n' "$GREEN" "$R" "$label" "$CYAN" "$(bar)" "$R" "$GREY" "$t" "$R"
+  else
+    printf '\r\033[K  %s✘ %s%s  %s(%ss)%s\n\n' "$RED" "$label" "$R" "$GREY" "$t" "$R"
+    printf '  %sLast lines of %s:%s\n' "$YEL" "$LOG" "$R"
+    tail -n 25 "$LOG" | sed 's/^/    │ /'
+    printf '\n  %sFull log: %s%s\n\n' "$GREY" "$ROOT/$LOG" "$R"
+    show_cursor
+    exit 1
+  fi
+  show_cursor
+}
+
+note() { printf '  %s•%s %s\n' "$GREY" "$R" "$*"; }
+warn() { printf '  %s!%s %s\n' "$YEL" "$R" "$*"; }
+die() { printf '\n  %s✘ %s%s\n\n' "$RED" "$*" "$R"; exit 1; }
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+b64url() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+jwt() { # role secret
+  local now h p s
+  now=$(date +%s)
+  h=$(printf '{"alg":"HS256","typ":"JWT"}' | b64url)
+  p=$(printf '{"role":"%s","iss":"supabase","iat":%d,"exp":%d}' "$1" "$now" $((now + 10 * 365 * 24 * 3600)) | b64url)
+  s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -hmac "$2" -binary | b64url)
+  printf '%s.%s.%s' "$h" "$p" "$s"
+}
+
+port_busy() {
+  local p=$1
+  if command -v ss >/dev/null 2>&1; then
+    ss -Hltn 2>/dev/null | awk '{print $4}' | grep -Eq "[:.]$p\$" && return 0
+  elif command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"$p" -sTCP:LISTEN >/dev/null 2>&1 && return 0
+  fi
+  docker ps --format '{{.Ports}}' 2>/dev/null | grep -Eq "[:.]$p->" && return 0
+  return 1
+}
+
+# Who holds a port: "ours" (this stack's gateway), a container name, "a process", or "" (free).
+port_owner() {
+  local p=$1 name
+  name=$(docker ps --format '{{.Names}} {{.Ports}}' 2>/dev/null | grep -E "[:.]$p->" | awk '{print $1}' | head -n 1)
+  case "$name" in
+    tikkit-gateway-*) echo ours; return ;;
+    ?*) echo "$name"; return ;;
+  esac
+  port_busy "$p" && echo "a process"
+}
+
+# Scan upward from the preferred port and take the first one that's free (or
+# already ours). Shows each probe; saves the result to docker/.env.
+pick_port() {
+  STEP=$((STEP + 1))
+  local want=${REQ_PORT:-$APP_PORT} p owner found=
+  printf '  %s◎%s %sScanning ports from %s%s\n' "$PINK" "$R" "$B" "$want" "$R"
+  for ((p = want; p < want + 200; p++)); do
+    owner=$(port_owner "$p")
+    if [ -z "$owner" ] || [ "$owner" = ours ]; then found=$p; break; fi
+    printf '      %s%-5s%s %sin use · %s%s\n' "$RED" "$p" "$R" "$GREY" "$owner" "$R"
+    nap 0.05
+  done
+  [ -n "$found" ] || die "no free port between $want and $((want + 199)); run APP_PORT=<port> ./deploy"
+  if [ "$found" != "$APP_PORT" ]; then
+    sed -i.bak -e "s|^APP_PORT=.*|APP_PORT=$found|" -e "s|^PUBLIC_URL=.*|PUBLIC_URL=http://$PUBLIC_IP:$found|" "$ENV_FILE" && rm -f "$ENV_FILE.bak"
+    APP_PORT=$found; PUBLIC_URL=http://$PUBLIC_IP:$found
+    export APP_PORT PUBLIC_URL
+  fi
+  local why="free"; [ "$owner" = ours ] && why="already Tikkit's"
+  printf '  %s✔%s %-34s %s%s%s %s%s%s\n' "$GREEN" "$R" "Port $found ($why)" "$CYAN" "$(bar)" "$R" "$GREY" "$PUBLIC_URL" "$R"
+  printf 'port: %s (%s)\n' "$found" "$why" >>"$LOG"
+}
+
+public_ip() {
+  local ip
+  ip=$(curl -fsS --max-time 5 https://api.ipify.org 2>/dev/null) ||
+    ip=$(curl -fsS --max-time 5 https://ifconfig.me 2>/dev/null) ||
+    ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+  printf '%s' "$ip"
+}
+
+psql_db() { "${DC[@]}" exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 -qAt "$@"; }
+
+# ── steps ────────────────────────────────────────────────────────────────────
+check_tools() {
+  command -v docker >/dev/null || { echo "docker is not installed"; return 1; }
+  docker info >/dev/null || { echo "docker daemon not reachable (try sudo, or add your user to the docker group)"; return 1; }
+  docker compose version || { echo "docker compose v2 plugin missing"; return 1; }
+  command -v openssl >/dev/null || { echo "openssl missing: apt install -y openssl"; return 1; }
+  command -v curl >/dev/null || { echo "curl missing: apt install -y curl"; return 1; }
+}
+
+make_env() {
+  local ip port secret
+  ip=${PUBLIC_IP:-$(public_ip)}
+  [ -n "$ip" ] || { echo "couldn't find this server's public IP; run: PUBLIC_IP=x.x.x.x ./deploy"; return 1; }
+  port=${REQ_PORT:-8090} # the port scan below moves it if it's taken
+  secret=$(openssl rand -hex 32)
+  umask 077
+  cat >"$ENV_FILE" <<EOF
+# Generated by ./deploy on $(date -u +%Y-%m-%dT%H:%MZ). Keep this file private.
+# After editing, run ./deploy again. Changing PUBLIC_IP/APP_PORT rebuilds the web app.
+
+PUBLIC_IP=$ip
+APP_PORT=$port
+PUBLIC_URL=http://$ip:$port
+
+POSTGRES_PASSWORD=$(openssl rand -hex 24)
+JWT_SECRET=$secret
+ANON_KEY=$(jwt anon "$secret")
+SERVICE_ROLE_KEY=$(jwt service_role "$secret")
+
+# Mail server for sign-in codes (the app signs in by emailed code, so this is
+# required for anyone to log in). Any SMTP works: Resend, Brevo, Gmail app password...
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_ADMIN_EMAIL=
+SMTP_SENDER_NAME=Tikkit
+
+# Optional
+GOOGLE_ENABLED=false
+GOOGLE_CLIENT_ID=
+GOOGLE_SECRET=
+BML_MODE=sandbox
+BML_API_KEY=
+FACEBOOK_APP_ID=
+EOF
+}
+
+pull_images() { "${DC[@]}" pull --quiet db auth rest storage functions; }
+build_web() { "${DC[@]}" build gateway; }
+start_db() {
+  "${DC[@]}" up -d --wait db
+}
+start_core() {
+  "${DC[@]}" up -d --wait auth rest storage
+  # Auth and Storage create their schemas on boot; migrations need both.
+  local i
+  for i in $(seq 1 60); do
+    [ "$(psql_db -c "select to_regclass('auth.users') is not null and to_regclass('storage.buckets') is not null")" = t ] && return 0
+    sleep 2
+  done
+  echo "auth/storage schemas never appeared"; return 1
+}
+
+migrate() {
+  psql_db -c "create schema if not exists supabase_migrations;
+    create table if not exists supabase_migrations.schema_migrations (version text primary key, name text, statements text[]);" || return 1
+  local f base version name applied=0
+  for f in supabase/migrations/*.sql; do
+    base=$(basename "$f" .sql); version=${base%%_*}; name=${base#*_}
+    [ "$(psql_db -c "select 1 from supabase_migrations.schema_migrations where version = '$version'")" = 1 ] && continue
+    echo "applying $base"
+    { cat "$f"; printf "\n;insert into supabase_migrations.schema_migrations (version, name) values ('%s', '%s');\n" "$version" "$name"; } |
+      psql_db -1 -f - || { echo "migration $base failed"; return 1; }
+    applied=$((applied + 1))
+  done
+  if [ "${SEED:-0}" = 1 ]; then
+    if [ "$(psql_db -c "select 1 from supabase_migrations.schema_migrations where version = 'seed'")" != 1 ]; then
+      echo "applying seed.sql"
+      { cat supabase/seed.sql; printf "\n;insert into supabase_migrations.schema_migrations (version, name) values ('seed', 'seed');\n"; } |
+        psql_db -1 -f - || return 1
+    fi
+  fi
+  psql_db -c "notify pgrst, 'reload schema'"
+  echo "$applied new migration(s)"
+}
+
+start_rest() { "${DC[@]}" up -d --wait --remove-orphans; }
+
+smoke() {
+  local u="http://127.0.0.1:$APP_PORT" i
+  for i in $(seq 1 30); do curl -fsS "$u/_health" >/dev/null 2>&1 && break; sleep 1; done
+  curl -fsS "$u/" | grep -qi '<html' || { echo "web app not served"; return 1; }
+  curl -fsS "$u/auth/v1/health" || { echo "auth not reachable"; return 1; }
+  curl -fsS -o /dev/null -H "apikey: $ANON_KEY" -H "Authorization: Bearer $ANON_KEY" "$u/rest/v1/" || { echo "rest not reachable"; return 1; }
+  curl -fsS -o /dev/null "$u/storage/v1/status" || { echo "storage not reachable"; return 1; }
+  local code; code=$(curl -s -o /dev/null -w '%{http_code}' "$u/functions/v1/share/e/x")
+  [ "$code" != 502 ] && [ "$code" != 504 ] || { echo "functions not reachable ($code)"; return 1; }
+}
+
+finale() {
+  local url=$PUBLIC_URL line w=52
+  echo
+  printf '  %s╭%s╮%s\n' "$PINK" "$(printf '─%.0s' $(seq 1 $w))" "$R"; nap 0.05
+  printf '  %s│%s  %s%-*s%s%s│%s\n' "$PINK" "$R" "$B" $((w - 2)) "ADMIT ONE  ·  Tikkit is live" "$R" "$PINK" "$R"; nap 0.05
+  printf '  %s├%s┤%s\n' "$PINK" "$(printf '╌%.0s' $(seq 1 $w))" "$R"; nap 0.05
+  for line in "Web app   $url" "API       $url  (Supabase URL)" "Port      $APP_PORT"; do
+    printf '  %s│%s  ' "$PINK" "$R"; typeout "$(printf '%-*s' $((w - 2)) "$line")" 0.006; printf '%s│%s\n' "$PINK" "$R"
+  done
+  printf '  %s╰%s╯%s\n' "$PINK" "$(printf '─%.0s' $(seq 1 $w))" "$R"
+  echo
+  [ -z "${SMTP_HOST:-}" ] && warn "SMTP isn't set, so sign-in codes can't be emailed. Fill SMTP_* in $ENV_FILE, then ./deploy"
+  note "Publishable key for the phone apps (EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY):"
+  printf '    %s%s%s\n' "$GREY" "$ANON_KEY" "$R"
+  note "Logs: ./deploy logs   ·   Status: ./deploy status   ·   Stop: ./deploy down"
+  echo
+}
+
+# ── commands ─────────────────────────────────────────────────────────────────
+case "${1:-up}" in
+  status) [ -f "$ENV_FILE" ] || die "not deployed yet"; exec "${DC[@]}" ps ;;
+  logs) [ -f "$ENV_FILE" ] || die "not deployed yet"; shift; exec "${DC[@]}" logs -f --tail 100 "$@" ;;
+  down) [ -f "$ENV_FILE" ] || die "not deployed yet"; exec "${DC[@]}" down ;;
+  -h | --help | help) sed -n '2,14p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  up | --seed) ;;
+  *) die "unknown command: $1 (try ./deploy help)" ;;
+esac
+for a in "$@"; do [ "$a" = --seed ] && SEED=1; done
+REQ_PORT=${APP_PORT:-} # APP_PORT=... ./deploy picks where the scan starts
+export SEED=${SEED:-0}
+
+: >"$LOG"
+banner
+
+run "Checking Docker" check_tools
+if [ -f "$ENV_FILE" ]; then
+  STEP=$((STEP + 1))
+  printf '  %s✔%s %-34s %s%s%s %s%s%s\n' "$GREEN" "$R" "Loading config" "$CYAN" "$(bar)" "$R" "$GREY" "docker/.env" "$R"
+else
+  run "Generating secrets & config" make_env
+fi
+set -a; . "./$ENV_FILE"; set +a
+pick_port
+
+run "Pulling images" pull_images
+run "Building web app" build_web
+run "Starting Postgres" start_db
+run "Starting auth · rest · storage" start_core
+run "Running migrations" migrate
+run "Starting functions · gateway" start_rest
+run "Smoke-testing every route" smoke
+finale

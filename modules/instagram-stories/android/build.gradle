@@ -1,0 +1,23 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.instagramstories'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.instagramstories"
+  defaultConfig {
+    versionCode 1
+    versionName "1.0.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // FileProvider, to hand Instagram a content:// link to the image.
+  implementation 'androidx.core:core:1.13.1'
+}

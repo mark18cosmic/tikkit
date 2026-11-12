@@ -32,6 +32,7 @@ yarn-error.*
 
 # local env files
 .env*.local
+supabase/.env
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +40,5 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+docker/.env
+docker/deploy.log

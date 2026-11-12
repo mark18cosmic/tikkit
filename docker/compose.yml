@@ -1,0 +1,195 @@
+# Tikkit production stack: the smallest slice of self-hosted Supabase the app
+# uses (Postgres, Auth, REST, Storage, Edge Functions), behind one nginx that
+# also serves the web app. Only the gateway port is published.
+#
+# Don't run this directly; use ./deploy from the repo root. It writes
+# docker/.env (secrets, public IP, port) and runs the migrations.
+
+name: tikkit
+
+x-restart: &restart
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  db:
+    <<: *restart
+    image: supabase/postgres:17.6.1.136
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf", "-c", "log_min_messages=fatal"]
+    environment:
+      POSTGRES_HOST: /var/run/postgresql
+      PGPORT: 5432
+      POSTGRES_PORT: 5432
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: postgres
+      POSTGRES_DB: postgres
+      JWT_EXP: 3600
+    volumes:
+      - ./db/roles.sql:/docker-entrypoint-initdb.d/init-scripts/99-roles.sql:ro
+      - ./db/jwt.sql:/docker-entrypoint-initdb.d/init-scripts/99-jwt.sql:ro
+      - db-data:/var/lib/postgresql/data
+      - db-config:/etc/postgresql-custom
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  auth:
+    <<: *restart
+    image: supabase/gotrue:v2.197.0
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${PUBLIC_URL}/auth/v1
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      GOTRUE_SITE_URL: ${PUBLIC_URL}
+      GOTRUE_URI_ALLOW_LIST: eventspace://**,exp://**,${PUBLIC_URL}/**
+      GOTRUE_DISABLE_SIGNUP: "false"
+      GOTRUE_JWT_ADMIN_ROLES: service_role
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_ISSUER: ${PUBLIC_URL}/auth/v1
+      GOTRUE_PASSWORD_MIN_LENGTH: 10
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: "false"
+      GOTRUE_MAILER_AUTOCONFIRM: "false"
+      GOTRUE_MAILER_OTP_EXP: 600
+      GOTRUE_MAILER_OTP_LENGTH: 6
+      # Same sign-in code email as supabase/templates/otp.html, served by the gateway.
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: Your Tikkit sign-in code
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: Your Tikkit sign-in code
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://gateway/_templates/otp.html
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://gateway/_templates/otp.html
+      GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: /auth/v1/verify
+      # Sign-in is by emailed code, so this must point at a real mail server.
+      GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL}
+      GOTRUE_SMTP_HOST: ${SMTP_HOST}
+      GOTRUE_SMTP_PORT: ${SMTP_PORT}
+      GOTRUE_SMTP_USER: ${SMTP_USER}
+      GOTRUE_SMTP_PASS: ${SMTP_PASS}
+      GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME}
+      GOTRUE_EXTERNAL_GOOGLE_ENABLED: ${GOOGLE_ENABLED:-false}
+      GOTRUE_EXTERNAL_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOTRUE_EXTERNAL_GOOGLE_SECRET: ${GOOGLE_SECRET:-}
+      GOTRUE_EXTERNAL_GOOGLE_REDIRECT_URI: ${PUBLIC_URL}/auth/v1/callback
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  rest:
+    <<: *restart
+    image: postgrest/postgrest:v14.18
+    depends_on:
+      db: { condition: service_healthy }
+    command: ["postgrest"]
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMAS: public,graphql_public
+      PGRST_DB_MAX_ROWS: 1000
+      PGRST_DB_EXTRA_SEARCH_PATH: public,extensions
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
+      PGRST_APP_SETTINGS_JWT_EXP: 3600
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
+      # Pick up new tables/functions after migrations without a restart.
+      PGRST_DB_CHANNEL_ENABLED: "true"
+
+  storage:
+    <<: *restart
+    image: supabase/storage-api:v1.89.12
+    depends_on:
+      db: { condition: service_healthy }
+      rest: { condition: service_started }
+    environment:
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      STORAGE_PUBLIC_URL: ${PUBLIC_URL}
+      REQUEST_ALLOW_X_FORWARDED_PATH: "true"
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      GLOBAL_S3_BUCKET: stub
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      # No imgproxy container: saves memory; the app doesn't request transforms.
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+    volumes:
+      - storage-data:/var/lib/storage
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  functions:
+    <<: *restart
+    image: supabase/edge-runtime:v1.77.9
+    mem_limit: 512m
+    command: ["start", "--main-service", "/home/deno/functions/main"]
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      SUPABASE_URL: http://gateway
+      SUPABASE_PUBLIC_URL: ${PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
+      WEB_URL: ${PUBLIC_URL}
+      SHARE_PUBLIC_URL: ${PUBLIC_URL}/functions/v1/share
+      BML_MODE: ${BML_MODE:-sandbox}
+      BML_API_KEY: ${BML_API_KEY:-}
+      RETURN_URL_PREFIXES: eventspace://,${PUBLIC_URL}/
+    volumes:
+      - ../supabase/functions/payments:/home/deno/functions/payments:ro
+      - ../supabase/functions/share:/home/deno/functions/share:ro
+      - ./functions-main:/home/deno/functions/main:ro
+      - deno-cache:/root/.cache/deno
+
+  # Web app + API gateway on one port.
+  gateway:
+    <<: *restart
+    build:
+      context: ..
+      dockerfile: docker/web.Dockerfile
+      args:
+        EXPO_PUBLIC_SUPABASE_URL: ${PUBLIC_URL}
+        EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${ANON_KEY}
+        EXPO_PUBLIC_SHARE_URL: ${PUBLIC_URL}/functions/v1/share
+        EXPO_PUBLIC_FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+    image: tikkit-gateway:latest
+    depends_on: [auth, rest, storage, functions]
+    ports:
+      - "${APP_PORT}:80"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/_health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db-data:
+  db-config:
+  storage-data:
+  deno-cache:

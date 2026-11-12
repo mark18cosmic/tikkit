@@ -1,0 +1,15 @@
+node_modules
+.git
+.expo
+dist
+web-build
+ios
+android
+.env
+.env.*
+!.env.example
+docker/.env
+supabase/.env
+supabase/.temp
+supabase/.branches
+*.log
